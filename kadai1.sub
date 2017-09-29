@@ -1,0 +1,9 @@
+universe = parallel
+executable = openmpiscript
+log = kadai1.log
+output = kadai1.out
+error = kadai1.err
+arguments = /home/touyou/renzoku/kadai1
+machine_count = 8
+request_cpus = 2
+queue
