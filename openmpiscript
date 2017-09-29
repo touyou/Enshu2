@@ -82,6 +82,7 @@ sort -n -k 1 < $CONDOR_CONTACT_FILE | awk '{print $2}' > machines
 OMP_NUM_THREADS=10
 export OMP_NUM_THREADS
 
+# now ... 8
 NUM_MPI_PROCS=$_CONDOR_NPROCS
 # NUM_MPI_PROCS=`expr $_CONDOR_NPROCS \* 2`
 
