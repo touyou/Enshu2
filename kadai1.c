@@ -26,6 +26,7 @@ int int_sort_desc(const void *a, const void *b) {
 int main(int argc, char **argv) {
     int myid, numproc;
     int m = 10;
+    int i, j;
     MPI_Status status;
 
     MPI_Init(&argc, &argv);
@@ -40,11 +41,11 @@ int main(int argc, char **argv) {
         int n = m * p;
         srand((unsigned)time(NULL));
         int init_nums[n];
-        for (int i=0; i<n; i++) {
+        for (i=0; i<n; i++) {
             nums[i] = rand();
             if (i < m) nums[i] = init_nums[i];
         }
-        for (int i=1; i<p; i++) {
+        for (i=1; i<p; i++) {
             MPI_Send(nums + i * m, m, MPI_INT, i, 1000, MPI_COMM_WORLD);
         }
     } else {
@@ -55,12 +56,13 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
     double t1 = MPI_Wtime();
 
-    for (int step=0; step<p; step++) {
+    int step;
+    for (step=0; step<p; step++) {
         if (step % 2 == myid % 2 && myid != p - 1) {
             // 一致なら右隣と交換
             // この時は昇順
             qsort((void *)nums, m, sizeof(int), int_sort);
-            for (int i=0; i<m; i++) {
+            for (i=0; i<m; i++) {
                 int upper, lower = nums[i];
                 MPI_Send(&lower, 1, MPI_INT, myid+1, i+myid, MPI_COMM_WORLD);
                 MPI_Recv(&upper, 1, MPI_INT, myid+1, i+myid, MPI_COMM_WORLD, &status);
@@ -70,7 +72,7 @@ int main(int argc, char **argv) {
             // 不一致なら左隣と交換
             // この時は降順
             qsort((void *)nums, m, sizeof(int), int_sort_desc);
-            for (int i=0; i<m; i++) {
+            for (i=0; i<m; i++) {
                 int lower, upper = nums[i];
                 MPI_Send(&upper, 1, MPI_INT, myid-1, i+myid-1, MPI_COMM_WORLD);
                 MPI_Recv(&lower, 1, MPI_INT, myid-1, i+myid-1, MPI_COMM_WORLD, &status);
@@ -88,16 +90,16 @@ int main(int argc, char **argv) {
         // 全部から受け取って、ソート結果と時間を表示
         printf("%.5fsec\n", elapsed);
         printf("process 0 ---\n");
-        for (int i=0; i<m; i++) {
+        for (i=0; i<m; i++) {
             if (i != 0) printf(" ");
             printf("%d", nums[i]);
         }
         puts("");
-        for (int i=1; i<p; i++) {
+        for (i=1; i<p; i++) {
             int recv[m];
             MPI_Recv(recv, m, MPI_INT, i, 100+i, MPI_COMM_WORLD, &status);
             printf("process %d---\n", i);
-            for (int j=0; j<m; j++) {
+            for (j=0; j<m; j++) {
                 if (j != 0) printf(" ");
                 printf("%d", recv[j]);
             }
