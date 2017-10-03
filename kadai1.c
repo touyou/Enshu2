@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define M 100
+
 int int_sort(const void *a, const void *b) {
     if (*(int *)a < *(int *)b) return -1;
     else if (*(int *)a < *(int *)b) return 0;
@@ -25,7 +27,7 @@ int int_sort_desc(const void *a, const void *b) {
 
 int main(int argc, char **argv) {
     int myid, numproc;
-    int m = 10;
+    int m = M;
     int i, j;
     MPI_Status status;
 
@@ -39,14 +41,16 @@ int main(int argc, char **argv) {
     if(myid == 0) {
         int p = numproc;
         int n = m * p;
-        srand((unsigned)time(NULL));
-        int init_nums[n];
-        for (i=0; i<n; i++) {
-            nums[i] = rand();
-            if (i < m) nums[i] = init_nums[i];
+        srand(12345);
+        int send_nums[m];
+        for (i=0; i<m; i++) {
+            nums[i] = abs(rand()) % 1000000;
         }
         for (i=1; i<p; i++) {
-            MPI_Send(nums + i * m, m, MPI_INT, i, 1000, MPI_COMM_WORLD);
+            for (j=0; j<m; j++) {
+                send_nums[j] = abs(rand()) % 1000000;
+            }
+            MPI_Send(send_nums, m, MPI_INT, i, 1000, MPI_COMM_WORLD);
         }
     } else {
         int nums[m];
@@ -88,7 +92,6 @@ int main(int argc, char **argv) {
     // ソート終了。結果をすべて返していく
     if (myid == 0) {
         // 全部から受け取って、ソート結果と時間を表示
-        printf("%.5fsec\n", elapsed);
         printf("process 0 ---\n");
         for (i=0; i<m; i++) {
             if (i != 0) printf(" ");
@@ -105,6 +108,7 @@ int main(int argc, char **argv) {
             }
             puts("");
         }
+        printf("%.5fsec\n", elapsed);
     } else {
         // ソートしたものを0に渡す
         MPI_Send(nums, m, MPI_INT, 0, 100+myid, MPI_COMM_WORLD);
