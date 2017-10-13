@@ -1,0 +1,9 @@
+universe = parallel
+executable = /home/touyou1121/kadai2
+log = kadai2.log
+output = kadai2.out
+error = kadai2.err
+machine_count = 1
+request_cpus = 1
+request_gpus = 1
+queue
