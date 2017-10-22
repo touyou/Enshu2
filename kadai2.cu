@@ -20,6 +20,22 @@
 
 // blockIdx, blockDim, threadIdx, gridDim
 __global__ void simmGpu(float ***u, float r) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (idx == 0 || idy == 0 || idx == XSIZE-1 || idy == YSIZE-1) return;
+
+    for (t=0; t<TIMEMAX; t++) {
+        float u1 = u[t%2][idx][idy];
+        float u2 = u[t%2][idx+1][idy];
+        float u3 = u[t%2][idx-1][idy];
+        float u4 = u[t%2][idx][idy+1];
+        float u5 = u[t%2][idx][idy-1];
+
+        __syncthreads();
+        u[(t+1)%2][idx][idy] = (1.0 - 4.0*r) * u1 + r * (u2 + u3 + u4 + u5);
+        __syncthreads();
+    }
 }
 
 void simmCpu(float u[2][XSIZE][YSIZE], float r) {
@@ -35,6 +51,10 @@ void simmCpu(float u[2][XSIZE][YSIZE], float r) {
             }
         }
     }
+}
+
+int divRoundUp(int value, int radix) {
+    return (value + radix - 1) / radix;
 }
 
 int main() {
@@ -53,7 +73,7 @@ int main() {
     // simmCpu(u, 0.12);
     cudaMalloc((void****)&devA, nb);
     cudaMemcpy(devA, u, nb, cudaMemcpyHostToDevice);
-    simmGpu<<<2, 3>>>(devA, 8);
+    simmGpu<<<100, XSIZE*YSIZE>>>(devA, 0.12);
     cudaMemcpy(u, devA, nb, cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
     gettimeofday(&t1, NULL);
@@ -67,10 +87,4 @@ int main() {
         }
         puts("");
     }
-    /*for (i=0; i<XSIZE; i++) {
-        for (j=0; j<YSIZE; j++) {
-            printf("%+02.2lf ", u[0][i][j]);
-        }
-        puts("");
-    }*/
 }
