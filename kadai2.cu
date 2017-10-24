@@ -9,6 +9,7 @@
 #define XSIZE 50
 #define YSIZE 50
 
+
 /*__global__ void add(float *x, float *y, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -20,8 +21,10 @@
 
 // blockIdx, blockDim, threadIdx, gridDim
 __global__ void simmGpu(float ***u, float r) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = id % XSIZE;
+    int idy = id / XSIZE;
+    int t;
 
     if (idx == 0 || idy == 0 || idx == XSIZE-1 || idy == YSIZE-1) return;
 
@@ -40,7 +43,7 @@ __global__ void simmGpu(float ***u, float r) {
 
 void simmCpu(float u[2][XSIZE][YSIZE], float r) {
     int t, i, j;
-    omp_set_num_threads(8);
+//    omp_set_num_threads(8);
 
     for (t=0; t<TIMEMAX; t++) {
         #pragma omp parallel for
@@ -69,15 +72,22 @@ int main() {
         }
     }
 
-    gettimeofday(&t0, NULL);
     // simmCpu(u, 0.12);
     cudaMalloc((void****)&devA, nb);
     cudaMemcpy(devA, u, nb, cudaMemcpyHostToDevice);
-    simmGpu<<<100, XSIZE*YSIZE>>>(devA, 0.12);
+    gettimeofday(&t0, NULL);
+    simmGpu<<<XSIZE, YSIZE>>>(devA, 0.12);
+    gettimeofday(&t1, NULL);
     cudaMemcpy(u, devA, nb, cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
-    gettimeofday(&t1, NULL);
     printf("Elapsed time = %lf\n", (double)(t1.tv_sec-t0.tv_sec)+(double)(t1.tv_usec-t0.tv_usec)*1.0e-6);
+
+    for (i=0; i<XSIZE; i++) {
+        for (j=0; j<YSIZE; j++) {
+            printf("%.2f ", u[0][i][j]);
+        }
+        puts("");
+    }
 
     for (i=0; i<XSIZE; i++) {
         for (j=0; j<YSIZE; j++) {
